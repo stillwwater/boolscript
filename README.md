@@ -1,6 +1,6 @@
-## (P&Q)
+## (Boolscript)
 
-P&Q is a language based on Boolean algebra. Conditional statements are reduced to `T` or `F` using 5 logical operators, until the program is reduced to either `((T)0+)` or `((F)0+)`.  A statement can be a statement, plus an operator, plus another statement; multiple operators within a statement is not allowed. The result, and the simplified version of the program, is printed once the program halts.
+Boolscript is a language based on Boolean algebra. Conditional statements are reduced to `T` or `F` using 5 logical operators, until the program is reduced to either `((T)0+)` or `((F)0+)`.  A statement can be a statement, plus an operator, plus another statement; multiple operators within a statement is not allowed. The result, and the simplified version of the program, is printed once the program halts.
 
 Instructions:
 
@@ -46,10 +46,16 @@ debug: -d
 Running a child program, replacing it with its output:
 
 ```python
-(('((T)0+)')0+)
+(({((p)0+)})0+)
 ```
 
 *Child programs running within a parent program have access to the parent's definitions*.
+
+Hello World:
+
+```R
+(({\++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.})0+)
+```
 
 If, then:
 
@@ -76,6 +82,8 @@ Pseudo-random value:
 ```
 
 *The program above will either print its output and halt, or it will run forever then print its output.*
+
+*Using quotes means the child program will run once during parsing, surrounding it with '{}' means it'll run each time the statement is executed.*
 
 ```R
 ((?&0)0+)

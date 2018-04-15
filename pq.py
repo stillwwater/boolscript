@@ -1,39 +1,54 @@
 import sys
 import random
+import smol
 
 T, F = 'T', 'F'
 OUT = '0'
 
+smol = smol.Smol()
+
 ws = lambda c: c == ' ' or c == '\n' or c =='\r'
 tf = lambda c: c == T or c == F
-toss = lambda: B(T) if random.randint(0, 1) == 1 else B(F)
+toss = lambda: Statement(T) if random.randint(0, 1) == 1 else Statement(F)
 clean = lambda raw: [c for c in raw if not ws(c)]
 interpret = lambda tree: eval(eat(tree[OUT]))
 
 tree = {}
 
-class AST(object):
-    pass
+class ASTNode(object):
+    def __str__(self):
+        return '({})'.format(self.value)
 
-class OP(AST):
+    __repr__ = __str__
+
+class ComplexStatement(ASTNode):
     def __init__(self, left, op, right):
-        self.left = B(left)
+        self.left = Statement(left)
         self.op = op
-        self.right = B(right)
+        self.right = Statement(right)
 
     def __str__(self):
         return '({} {} {})'.format(self.left, self.op, self.right)
 
     __repr__ = __str__
 
-class B(AST):
+class Statement(ASTNode):
     def __init__(self, value):
         self.value = eat(value)
 
-    def __str__(self):
-        return '({})'.format(self.value)
+class Proc(ASTNode):
+    def __init__(self, program):
+        self.value = clean(program)
 
-    __repr__ = __str__
+    def run(self):
+        if (self.value[0] == '('):
+            # run an inner program
+            return run(self.value)
+        # run a smol bf program
+        smol.pc = 0
+        res = smol.run(self.value)
+        print('tape: {}'.format(smol.tape))
+        return Statement(F) if res == 0 else Statement(T)
 
 def error():
     print("not allowed!")
@@ -41,20 +56,19 @@ def error():
 
 def parse(tokens):
     token = tokens.pop(0)
-    if token == "'":
-        q = []
-        while tokens[0] != "'":
-            q.append(tokens.pop(0))
-        tokens.pop(0)
-        return run(q).value
-
+    if token == "{" or token == "'":
+        q = ''
+        while tokens[0] != "}" and tokens[0] != "'":
+            q += (tokens.pop(0))
+        ending = tokens.pop(0)
+        return q if ending == '}' else Proc(q).run().value
     if token == '(':
         f = []
         while tokens[0] != ')':
             f.append(parse(tokens))
         tokens.pop(0)
         return f
-    elif token == ')':
+    elif token == ')' or token == '}':
         error()
     else:
         if token == '-': token += tokens.pop(0)
@@ -65,11 +79,12 @@ def eat(exp):
         return exp
     while len(exp) > 0:
         if len(exp) == 1:
-            ast = B(exp.pop(0))
+            a = exp.pop(0)
+            ast = Statement(a) if len(a) == 1 else Proc(a)
             break
         if len(exp) == 2:
             error()
-        ast = OP(exp.pop(0), exp.pop(0), exp.pop(0))
+        ast = ComplexStatement(exp.pop(0), exp.pop(0), exp.pop(0))
     return ast
 
 def store(tokens):
@@ -82,8 +97,13 @@ def store(tokens):
     return tree
 
 def eval(ast):
-    if isinstance(ast, B):
-        if isinstance(ast.value, OP):
+    if isinstance(ast, Proc):
+        # this node is a procedure, or an inner program
+        # exectute it and replace it with the return value
+        ast = ast.run()
+        print('inner: {}'.format(ast))
+    if isinstance(ast, Statement):
+        if isinstance(ast.value, ComplexStatement):
             ast = eval(ast.value)
         if not tf(ast.value):
             if ast.value == '?':
@@ -93,7 +113,7 @@ def eval(ast):
                 token = input('%s? ' % ast.value)
                 if not tf(token):
                     token = run(list(token)).value
-                tree[ast.value] = B(token)
+                tree[ast.value] = Statement(token)
             ast = eval(tree[ast.value])
         return ast
     op = ast.op
@@ -125,7 +145,7 @@ def run(raw):
         tree.update(store(parse(clean(raw))))
     except:
         error()
-    tree.update({T: B(T), F: B(F)})
+    tree.update({T: Statement(T), F: Statement(F)})
 
     if len(sys.argv) > 2 and sys.argv[2] == '-d':
         print(tree)
@@ -144,7 +164,7 @@ def run(raw):
     return result
 
 print("""
---(p&q)--
+--(boolscript)--
 
 - 0 : program entry
 - + : record
@@ -153,6 +173,8 @@ print("""
 - | : or
 - ^ : xor
 - ->: implies
+
+--inner output--
 """)
 
 if len(sys.argv) < 2: error()
@@ -168,5 +190,5 @@ else:
             raw.append(c)
 
 output = '({}0+)'.format(run(raw))
-print('--output--\nresult:', run(output))
-print('equivalent program:', output)
+run(output)
+print('\noutput:', output)
